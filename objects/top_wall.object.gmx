@@ -3,7 +3,7 @@
   <spriteName>side_wall_spr</spriteName>
   <solid>0</solid>
   <visible>0</visible>
-  <depth>100</depth>
+  <depth>0</depth>
   <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>

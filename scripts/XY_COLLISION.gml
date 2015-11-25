@@ -5,16 +5,19 @@ hits[0] = 0;
 if !instance_exists(ground)
     return hits;
 var no_wall = ds_queue_create();
-var bsx = floor((bbox_right-bbox_left)/2) - 1;//31
-var bsy = floor((bbox_bottom-bbox_top)/2) - 1;//31
+var bsx = floor((bbox_right-bbox_left)/2) - 1;
+var bsy = floor((bbox_bottom-bbox_top)/2) - 1;
 var xc = bbox_left + bsx;
-var yc = bbox_top + bsx;
+var yc = bbox_top + bsy;
 
 //X collision
 if !((argument1>>1)&1)
-{   var ld = abs(hspeed);
+{   var spd = hspeed;
+    if hspeed == 0
+        spd = x - xprevious;
+    var ld = abs(spd);
     /*if !collision_rectangle(xc-bsx,yc-bsy,xc+bsx,yc+bsy,ground,false,true)*/ do
-    {   var groundb = collision_rectangle(xc,yc-bsy,xc + bsx*sign(hspeed) + hspeed,yc+bsy,ground,false,true);
+    {   var groundb = collision_rectangle(xc,yc-bsy,xc + bsx*sign(spd) + spd,yc+bsy,ground,false,true);
         if groundb
         {   ld = min(ld,distance_to_object(groundb));
             ds_queue_enqueue(no_wall,groundb);
@@ -23,7 +26,7 @@ if !((argument1>>1)&1)
     }until !groundb
     
     if !ds_queue_empty(no_wall)
-    {   x += sign(hspeed) * ld;
+    {   x += sign(spd) * ld;
         //hspeed = 0;
         //a_speed *= 0.7;
         hits[0] = 1;
@@ -36,9 +39,12 @@ if !((argument1>>1)&1)
 
 //Y collision
 if !(argument1&1)
-{   ld = abs(vspeed);
+{   var spd = vspeed;
+    if vspeed == 0
+        spd = y - yprevious;
+    var ld = abs(spd);
     /*if vspeed >= 0*/ do
-    {   groundb = collision_rectangle(xc-bsx,yc+bsy,xc+bsx,yc + bsy*sign(vspeed) + vspeed,ground,false,true);
+    {   groundb = collision_rectangle(xc-bsx,yc,xc+bsx,yc + bsy*sign(spd) + spd,ground,false,true);
         if groundb
         {   ld = min(ld,distance_to_object(groundb));
             ds_queue_enqueue(no_wall,groundb);
@@ -47,7 +53,7 @@ if !(argument1&1)
     }until !groundb
     
     if !ds_queue_empty(no_wall)
-    {   y += sign(vspeed) * ld;
+    {   y += sign(spd) * ld;
         //vspeed = 0;
         //grounded = 1;
         //jumps = ex_jumps;

@@ -16,6 +16,8 @@
     <sprite>sprites\turret_spr</sprite>
     <sprite>sprites\bullet_spr</sprite>
     <sprite>sprites\warning_spr</sprite>
+    <sprite>sprites\attacking_spr</sprite>
+    <sprite>sprites\target_spr</sprite>
     <sprite>sprites\boss_spr</sprite>
     <sprite>sprites\lgrip_spr</sprite>
     <sprite>sprites\rgrip_spr</sprite>
@@ -46,6 +48,7 @@
     <object>objects\boss</object>
     <object>objects\lgrip</object>
     <object>objects\rgrip</object>
+    <object>objects\dbeam</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\title_screen</room>

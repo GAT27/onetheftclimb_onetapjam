@@ -2,15 +2,15 @@
 <sprite>
   <type>0</type>
   <xorig>128</xorig>
-  <yorigin>128</yorigin>
+  <yorigin>245</yorigin>
   <colkind>1</colkind>
   <coltolerance>0</coltolerance>
   <sepmasks>0</sepmasks>
   <bboxmode>0</bboxmode>
-  <bbox_left>9</bbox_left>
-  <bbox_right>238</bbox_right>
-  <bbox_top>4</bbox_top>
-  <bbox_bottom>245</bbox_bottom>
+  <bbox_left>7</bbox_left>
+  <bbox_right>240</bbox_right>
+  <bbox_top>2</bbox_top>
+  <bbox_bottom>247</bbox_bottom>
   <HTile>0</HTile>
   <VTile>0</VTile>
   <TextureGroups>
@@ -21,5 +21,6 @@
   <height>256</height>
   <frames>
     <frame index="0">images\hotjunk_spr_0.png</frame>
+    <frame index="1">images\hotjunk_spr_1.png</frame>
   </frames>
 </sprite>

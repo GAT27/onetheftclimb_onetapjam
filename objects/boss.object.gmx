@@ -3,7 +3,7 @@
   <spriteName>boss_spr</spriteName>
   <solid>0</solid>
   <visible>-1</visible>
-  <depth>190</depth>
+  <depth>140</depth>
   <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
@@ -27,6 +27,7 @@
             <kind>1</kind>
             <string>///WHEN BOSS START
 
+image_speed = 0;
 placement = 0;
 wobb = 0;
 a_angle = 90;
@@ -36,8 +37,6 @@ timer2 = 0;
 attack = 0;
 damage = 0;
 action = 0;
-//ahspeed = 0;
-//avspeed = 0;
 
 </string>
           </argument>
@@ -63,8 +62,31 @@ action = 0;
             <kind>1</kind>
             <string>///BOSS
 
+//Animation
+if wobb
+{   if abs(image_speed) == 0
+    {   wobb++;
+        if wobb &gt;= room_speed*1.3
+        {   if image_index == 5
+                image_speed = -10/room_speed;
+            else
+                image_index++;
+            wobb = 1;
+        }
+    }
+    else if image_index &lt;= 2
+    {   image_speed *= -1;
+        if !floor(image_index)
+            image_index = image_number - 1;
+        else
+            image_index = 3;
+    }
+}
+
 switch machine.game_boss
-{   case 2: if !wobb for (var i=0;i&lt;=2;i++)
+{   //Leg stage
+    case 2: //Go up or down
+            if !wobb for (var i=0;i&lt;=2;i++)
             {   switch i
                 {   case 0: var j = lgrip;
                             var k = !wobb;
@@ -87,14 +109,18 @@ switch machine.game_boss
                             wobb = 1;
                     }
                     else if attack
-                        with instance_create(x,y,bullet) 
-                            motion_add(other.a_shoot,80);
+                    {   dbeam.x = x;
+                        dbeam.y = y+256;
+                    }
                 }
                 else if i == 2
-                    wobb = 1;
+                {   wobb = 1;
+                    with dbeam instance_destroy();
+                }
             }
-            else
-            {   if !timer1 and !timer2
+            //Attack
+            else if abs(image_speed) &gt; 0
+            {   if !timer1 and !timer2//Wait
                 {   wobb++;
                     if instance_exists(machine.me)
                         a_shoot = 20*(1 + min((a_angle-90)/90,1) - max((a_angle-90)/90,1))
@@ -103,15 +129,15 @@ switch machine.game_boss
                     if a_angle &gt;= 360
                         a_angle -= 360;
                     if !(wobb%(room_speed/3))
-                    {   with lgrip y = clamp(y+irandom_range(-15,15),
-                                       room_height*(0.1+0.6*other.placement),
-                                       room_height*(0.2+0.6*other.placement));
-                        with rgrip y = clamp(y+irandom_range(-15,15),
-                                       room_height*(0.1+0.6*other.placement),
-                                       room_height*(0.2+0.6*other.placement));
+                    {   lgrip.y = clamp(y+irandom_range(-15,15),
+                                        room_height*(0.1+0.6*placement),
+                                        room_height*(0.2+0.6*placement));
+                        rgrip.y = clamp(y+irandom_range(-15,15),
+                                        room_height*(0.1+0.6*placement),
+                                        room_height*(0.2+0.6*placement));
                     }
                     if !(wobb%room_speed)
-                    {   if random(1) &lt; damage/6
+                    {   if random(1) &lt; damage/9//Waste falldown
                         with instance_create(irandom_range(room_width*0.2,room_width*0.8),
                                              room_height*-0.2,waste)
                         {   image_xscale = 3;
@@ -123,14 +149,14 @@ switch machine.game_boss
                                 image_blend = c_green;
                             }
                         }
-                        if irandom(100) &lt; wobb/room_speed
+                        if irandom(100) &lt; wobb/room_speed//Death beam
                             timer1 = 1;
-                        else if irandom(100) &lt; 40
-                        {   timer1 = 1;
+                        else if irandom(100) &lt; 40//Straight shot
+                        {   timer1 = 1.5;
                             attack = 3;
                             action = 1;
                         }
-                        else if !placement and irandom(100) &lt; 8
+                        else if irandom(100) &lt; 8//Random shot
                         {   timer1 = 0.8;
                             attack = 4;
                             action = 2;
@@ -139,7 +165,7 @@ switch machine.game_boss
                     }
                 }
                 else switch action
-                {   case 0: if timer2
+                {   case 0: if timer2//Death beam attack
                             {   timer2 -= 1/room_speed;
                                 if !timer2
                                 {   wobb = 0;
@@ -147,6 +173,12 @@ switch machine.game_boss
                                     rgrip.wobb = 0;
                                     placement ^= 1;
                                     attack = 1;
+                                    with instance_create(x,y+256,dbeam)
+                                    {   image_xscale = (2*!(other.a_shoot%360)-1)*room_width;
+                                        image_yscale = 512;
+                                        image_alpha = 0.75;
+                                        image_blend = c_aqua;
+                                    }
                                 }
                             }
                             else
@@ -156,11 +188,11 @@ switch machine.game_boss
                                 a_shoot = timer1;
                                 if !(timer1%180) and (irandom(100)&lt;timer1/90)
                                 {   timer1 = 0;
-                                    timer2 = 2;
+                                    timer2 = 3;
                                 }
                             }
                             break;
-                    case 1: if timer2
+                    case 1: if timer2//Straight shot attack
                             {   timer2 -= 1/room_speed;
                                 if !timer2
                                 {   attack--;
@@ -178,11 +210,11 @@ switch machine.game_boss
                                     timer2 = 0.7;
                             }
                             break;
-                    case 2: if timer2
+                    case 2: if timer2//Random shot attack
                             {   timer2 -= 1/room_speed;
                                 if !timer2
                                 {   var a = ds_queue_dequeue(att);
-                                    a_shoot = 270;
+                                    a_shoot = 270 - 180*placement;
                                     with instance_create(x,y,bullet)
                                         motion_add(point_direction(x,y,a[0],a[1]),80);
                                     if !ds_queue_empty(att)
@@ -202,6 +234,12 @@ switch machine.game_boss
                                     a[0] = irandom_range(room_width*0.1,room_width*0.9);
                                     ds_queue_enqueue(att,a);
                                     a_shoot = point_direction(x,y,a[0],a[1]);
+                                    with instance_create(a[0],a[1],warning)
+                                    {   timer = 1.5;
+                                        sprite_index = target_spr;
+                                        image_xscale = 2;
+                                        image_yscale = 2;
+                                    }
                                     if attack
                                         timer1 = 0.8;
                                     else
@@ -211,29 +249,28 @@ switch machine.game_boss
                             break;
                 }
             }
-            //var aspd = 0.012*point_distance(room_width/2,placement,x,y);
-            //var adir = point_direction(room_width/2,placement,x,y);
+            //Two spring movement
             var aspd1 = 0.011*point_distance(lgrip.x,lgrip.y,x,y);
             var adir1 = point_direction(lgrip.x,lgrip.y,x,y);
             var aspd2 = 0.009*point_distance(rgrip.x,rgrip.y,x,y);
             var adir2 = point_direction(rgrip.x,rgrip.y,x,y);
-            //hspeed -= (irandom_range(-1,1)+aspd) * dcos(adir) * 0.8;
-            //vspeed += (irandom_range(-1,1)+aspd) * dsin(adir) * 0.8;
-            hspeed -= /*aspd*dcos(adir) +*/ aspd1*dcos(adir1) + aspd2*dcos(adir2);
-            vspeed += /*aspd*dsin(adir) +*/ aspd1*dsin(adir1) + aspd2*dsin(adir2);
-            if damage &gt;= 1
+            hspeed -= aspd1*dcos(adir1) + aspd2*dcos(adir2);
+            vspeed += aspd1*dsin(adir1) + aspd2*dsin(adir2);
+            if damage &gt;= 1//STAGE FINISH
             {   damage = 0;
-                hspeed = 0;
+                timer1 = 0;
+                timer2 = 0;
+                hspeed = choose(-5,5);
                 vspeed = 0;
+                gravity = 0.2;
                 machine.game_boss++;
+                with dbeam instance_destroy();
                 with rgrip instance_destroy();
             }
-            //vspeed -= 0.2;
-            //lgrip.vspeed -= 0.2;
-            //rgrip.vspeed -= 0.2;
             break;
+    //Fall stage
     case 3: wobb++;
-            if !(wobb%room_speed)
+            if !(wobb%room_speed)//Waste falldown
             {   with instance_create(irandom_range(room_width*0.05,room_width*0.95),
                                      room_height*-0.2,waste)
                 {   image_xscale = 3;
@@ -246,46 +283,83 @@ switch machine.game_boss
                     }
                 }
             }
-            if damage &gt;= 1
-            {   machine.game_boss++;
-                wobb = 0;
-                placement = 0;
-                damage = 0;
-                action = 0;
-                attack = 0;
-                y = lgrip.y;
+            var hit = XY_COLLISION(side_wall,1);
+            if hit[0]
+                hspeed *= -1;
+            hit = XY_COLLISION(bot_wall,2);
+            if hit[0]
+            {   hspeed = irandom_range(-5,5);
+                vspeed = min(-vspeed,-5);
+                with instance_create(x,y-512,warning)
+                {   timer = 2;
+                    sprite_index = attacking_spr;
+                    image_xscale = 2;
+                    image_yscale = 2;
+                }
+            }
+            if damage &gt;= 1//STAGE FINISH
+            {   if gravity != 0
+                {   gravity = 0;
+                    y = room_height*0.9;
+                }
+                y -= 3;
+                if y &lt;= lgrip.y
+                {   machine.game_boss++;
+                    wobb = 3;
+                    placement = 0;
+                    damage = 0;
+                    action = 0;
+                    attack = 0;
+                    speed = 0;
+                }
             }
             break;
-    case 4: if !timer1 and !timer2
-            {   x = room_width*(0.5 + 0.38*(1 + min((wobb-90)/90,1) - max((wobb-90)/90,1)));
-                wobb += 3;
-                if wobb &gt;= 360
-                {   wobb -= 360;
-                    action++;
+    //Ram stage
+    case 4: if !timer1 and !timer2//Wait up and down
+            {   if damage &gt;= 2//END BOSS
+                {   wobb = 3;
+                    image_index = 2;
+                    gravity = 0.05;
+                    with lgrip instance_destroy();
+                    hit = XY_COLLISION(bot_wall,2);
+                    if hit[0]
+                    {   instance_destroy();
+                        machine.game_finish = date_current_datetime();
+                        machine.game_state += 2;
+                    }
                 }
-                else if !((wobb+90)%180) and (irandom(100)&lt;20+2*action)
-                {   timer1 = 5;
-                    action = 0;
+                else
+                {   x = room_width*(0.5 + 0.38*(1 + min((wobb-90)/90,1) - max((wobb-90)/90,1)));
+                    y += 7 * sign(room_height*(0.15+0.6*placement) - y);
+                    lgrip.y = y;
+                    if placement
+                    {   if y &gt;= room_height*(0.15+0.6*placement)
+                            placement = 0;
+                    }
+                    else if y &lt;= room_height*(0.15+0.6*placement)
+                        placement = 1;
+                    wobb += 3;
+                    if wobb &gt;= 360
+                    {   wobb -= 360;
+                        attack++;
+                    }
+                    else if !((wobb+90)%180) and (irandom(100)&lt;10+2*attack)//Ram
+                    {   timer1 = 4;
+                        attack = 0;
+                    }
                 }
-                y += 9 * sign(room_height*(0.15+0.6*placement) - y);
-                lgrip.y = y;
-                if placement
-                {   if y &gt;= room_height*(0.15+0.6*placement)
-                        placement = 0;
-                }
-                else if y &lt;= room_height*(0.15+0.6*placement)
-                    placement = 1;
             }
-            else
+            else//Ram attack
             {   if timer2
                 {   timer2 -= 1/room_speed;
-                    hspeed += hspeed/12;
+                    if !action
+                        hspeed += hspeed/12;
                     var hit = XY_COLLISION(side_wall,1);
                     if hit[0]
-                    {   hspeed = 0;
-                        vspeed = 0;
-                        attack = 1;
-                        repeat 6
+                    {   speed = 0;
+                        action = 1;
+                        move_towards_point(room_width/2,lgrip.y,2);
+                        repeat (6 + 2*damage)
                         with instance_create(irandom_range(room_width*0.05,room_width*0.95),
                                              room_height*-0.2,waste)
                         {   image_xscale = 3;
@@ -297,27 +371,29 @@ switch machine.game_boss
                                 image_blend = c_green;
                             }
                         }
+                        with instance_create(x+512*power(-1,!(x&lt;room_width/2)),y,warning)
+                        {   timer = 3;
+                            sprite_index = attacking_spr;
+                            image_xscale = 2;
+                            image_yscale = 2;
+                        }
                     }
                     if !timer2
-                    {   attack--;
-                        /*with instance_create(x,y,bullet)
-                            motion_add(other.a_shoot,80);
-                        if attack
-                            timer2 = 0.7;
-                        else
-                            action = 0;*/
+                    {   action--;
+                        speed = 0;
+                        y = lgrip.y;
                     }
                 }
                 else if instance_exists(machine.me)
                 {   timer1 -= 1/room_speed;
                     if !timer1
-                    {   timer2 = 10;
+                    {   timer2 = 8;
                         hspeed = 1 * sign(machine.me.x-x);
                         if hspeed == 0
                             hspeed = 1;
                     }
                     else
-                    {   vspeed = 12 * sign(machine.me.y-y);
+                    {   vspeed = 11 * sign(machine.me.y-y);
                         lgrip.y = y;
                     }
                 }
@@ -347,17 +423,19 @@ switch machine.game_boss
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>///LIMBS
+            <string>///LIMBS AND LASER
 
 draw_self();
 if machine.game_boss &gt;= 2
-{   draw_line_width_color(x,y,lgrip.x+128,lgrip.y,10,c_olive,c_olive);
-    draw_line_width_color(x,y+64,lgrip.x+128,lgrip.y+128,20,c_olive,c_olive);
-    draw_line_width_color(x,y-64,lgrip.x+128,lgrip.y-128,20,c_olive,c_olive);
-    if machine.game_boss == 2
-    {   draw_line_width_color(x,y,rgrip.x-128,rgrip.y,10,c_olive,c_maroon);
-        draw_line_width_color(x,y+64,rgrip.x-128,rgrip.y+128,20,c_olive,c_maroon);
-        draw_line_width_color(x,y-64,rgrip.x-128,rgrip.y-128,20,c_olive,c_maroon);
+{   if instance_exists(lgrip)
+    {   draw_line_width_color(x-192,y,lgrip.x+128,lgrip.y,10,c_olive,c_olive);
+        draw_line_width_color(x-192,y+64,lgrip.x+128,lgrip.y+128,20,c_olive,c_olive);
+        draw_line_width_color(x-192,y-64,lgrip.x+128,lgrip.y-128,20,c_olive,c_olive);
+    }
+    if instance_exists(rgrip)
+    {   draw_line_width_color(x+192,y,rgrip.x-128,rgrip.y,10,c_olive,c_maroon);
+        draw_line_width_color(x+192,y+64,rgrip.x-128,rgrip.y+128,20,c_olive,c_maroon);
+        draw_line_width_color(x+192,y-64,rgrip.x-128,rgrip.y-128,20,c_olive,c_maroon);
     }
     if wobb
     {   //var v = 20*(1 + min((a_angle-90)/90,1) - max((a_angle-90)/90,1));

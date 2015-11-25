@@ -31,24 +31,29 @@ device_mouse_dbclick_enable(false);
 //draw_enable_alphablend(false);
 //display_reset(2,false);//??????
 application_surface_enable(true);//???????????????????
-//draw_clear_alpha(0,0);
-show_debug_overlay(true);
+//show_debug_overlay(true);
 draw_set_font(fgothic);
 randomize();
+globalvar looks;
+globalvar lp;
 globalvar one_p;
 globalvar one_h;
 globalvar one_r;
-game_state = 0;
-game_select = 0;
-game_start = 0;
-game_boss = 0;
 one_p = 0;
 one_h = 0;
 one_r = 0;
+game_state = 0;
+game_select = 0;
+game_story = 0;
+game_bottom = 0;
+game_start = 0;
+game_finish = 0;
+game_boss = 0;
+wait = 0;
+rate = 1;
 pwin = 10//3000;
 points = 0;
 health = 100;
-rate = 1;
 
 var w = min(display_get_width(),display_get_height());
 var h = max(display_get_height(),display_get_width());
@@ -57,15 +62,45 @@ if os_type != os_android
     h = w*0.95;
     w *= r*0.95;
     window_set_size(w,h);
+    //display_reset(2,false);
 }
 surface_resize(application_surface,w,h);//????????????????
 application_surface_enable(false);//????
 view_wport[0] = w;
 view_hport[0] = h;
 
-me = instance_create(room_width/2,room_height*0.85,jumper);
+me = instance_create(room_width/2,room_height*0.98,jumper);
 if room == title_screen
-    with me instance_destroy();
+{   with me instance_destroy();
+    looks = part_system_create();
+    lp[0] = part_type_create();
+    /*part_type_shape(lp[0],pt_shape_square);
+    part_type_size(lp[0],0.5,0.5,-0.02,0);
+    //part_type_scale(global.p1, 1, 1);
+    //part_type_alpha2(global.p1, 1, 0);
+    part_type_speed(lp[0],5,10,0,0);
+    part_type_direction(lp[0],60,120,0,0);
+    part_type_gravity(lp[0],0.2,270);
+    //part_type_orientation(global.p1, 0, 0, 0, 0, 1);
+    part_type_color_mix(lp[0],c_red,c_orange);
+    part_type_blend(lp[0],true);
+    part_type_life(lp[0],room_speed,room_speed*3);*/
+    
+    part_type_shape(lp[0],pt_shape_line);
+    part_type_size(lp[0],1,1,0.02,0);
+    //part_type_size(lp[0],0.5,0.5,-0.02,0);
+    //part_type_size(lp[0],3,3,0.5,0);
+    //part_type_scale(lp[0],1,1)
+    part_type_speed(lp[0],5,10,0,0);
+    part_type_direction(lp[0],60,120,0,0);
+    part_type_gravity(lp[0],0.5,270);
+    //part_type_orientation(lp[0],0,0,0,0,1)
+    part_type_color_mix(lp[0],c_red,c_orange);
+    //part_type_alpha1(lp[0],1)
+    part_type_blend(lp[0],false)
+    part_type_life(lp[0],room_speed,room_speed*3)
+}
+
 with instance_create(-1,0,side_wall)
 {   image_xscale = 1;
     image_yscale = room_height;
@@ -78,9 +113,18 @@ with instance_create(0,-1,top_wall)
 {   image_xscale = room_width;
     image_yscale = 1;
 }
-with instance_create(0,room_height*0.9,bot_wall)
-{   image_xscale = room_width;
-    image_yscale = 1;
+
+with instance_create(-2000,room_height*-0.5,bot_wall)
+{   image_xscale = 1000;
+    image_yscale = room_height*2;
+}
+with instance_create(room_width+1000,room_height*-0.5,bot_wall)
+{   image_xscale = 1000;
+    image_yscale = room_height*2;
+}
+with instance_create(room_width*-0.5,room_height+1000,bot_wall)
+{   image_xscale = room_width*2;
+    image_yscale = 1000;
 }
 
 </string>
@@ -122,30 +166,47 @@ else
 }
 
 switch game_state
-{   case 0: if room == main_screen
+{   //Intro start
+    case 0: if room == main_screen
             {   if one_h
-                {   if game_select &lt; 59
+                {   if game_select &lt; 40
                         game_select += 1;
                 }
                 else
                     game_select = 0;
-                if one_r
-                    test=1
-                if game_select == 59
+                if one_r and (game_story&lt;6)
+                    game_story++;
+                if game_select &gt;= 40
                 {   game_select = 0;
                     game_state++;
+                    game_bottom = instance_create(0,room_height,bot_wall);
+                    with game_bottom
+                    {   image_xscale = room_width;
+                        image_yscale = 1;
+                    }
                 }
                 one_p = 0;
                 one_h = 0;
                 one_r = 0;
             }
-            else if one_p
+            else if one_r
                 room_goto_next();
             break;
-    case 1: me.a_angle = 135;
-            one_h = 1;
-            game_state++;
+    //Machine rise
+    case 1: one_p = 0;
+            one_h = 0;
+            one_r = 0;
+            game_bottom.y -= 6;
+            me.y = game_bottom.y-70;
+            if game_bottom.y &lt;= room_height*0.9
+            {   game_bottom.y = room_height*0.9;
+                me.a_angle = 135;
+                me.image_xscale = -1;
+                one_h = 1;
+                game_state++;
+            }
             break;
+    //Timer ready
     case 2: one_p = 0;
             one_h = 0;
             one_r = 0;
@@ -154,16 +215,21 @@ switch game_state
                 game_state++;
             }
             break;
+    //Main game
     case 3: var i,hit,wspeed = rate * (2 + one_h*4);
+            if game_boss == 1
+                wspeed = 2;
+            wait = max(wait-wspeed,0);
             points = max(points+wspeed*2/room_speed,0);
             if points &gt;= pwin//BOSS
             {   points = pwin;
                 if !game_boss
                 {   game_boss++;
-                    instance_create(room_width/2,room_height*-0.2,boss);
-                    with instance_create(0,room_height*-0.2,lgrip)
+                    rate = 1;
+                    instance_create(room_width/2,room_height*-1,boss);
+                    with instance_create(0,room_height*-1,lgrip)
                         wobb = 0;
-                    with instance_create(room_width,room_height*-0.2,rgrip)
+                    with instance_create(room_width,room_height*-1,rgrip)
                         wobb = 0;
                     with instance_create(room_width/2,0,warning)
                     {   timer = 3;
@@ -179,46 +245,55 @@ switch game_state
                 health = min(health+2/room_speed,100);
             
             //Object controls
-            if !game_boss and (random(1)&lt;=0.01)
-            {   with instance_create(0,room_height*-0.2,spawner)
-                {   image_xscale = room_width;
-                    image_yscale = 32;
-                    image_blend = c_aqua;
-                    if random(1) &lt; 0.1*3*other.points/other.pwin
-                        with instance_create(irandom_range(room_width*0.2,room_width*0.8),y,hotjunk)
-                            with instance_create(x,0,warning)
-                            {   timer = 2;
-                                image_xscale = 2;
-                                image_yscale = 2;
-                                image_blend = c_red;
-                            }
-                    else if random(1) &lt; 0.1*3/2*other.points/other.pwin
-                        with instance_create(irandom_range(room_width*0.2,room_width*0.8),y,turret)
-                        {   timer = 4;
-                            damage = 0;
-                            with instance_create(x,0,warning)
-                            {   timer = 2;
-                                image_xscale = 2;
-                                image_yscale = 2;
-                                image_blend = c_aqua;
-                            }
+            if !wait and !game_boss and (random(1)&lt;=0.01)
+            do with instance_create(irandom_range(room_width*0.2,room_width*0.8),room_height*-0.2,spawner)
+            {   image_xscale = room_width*0.05;
+                image_yscale = 192;
+                image_blend = c_black;
+                other.wait = image_yscale*2;
+                sprite_set_offset(sprite_index,0,1);
+                if random(1) &lt; 0.1*3*other.points/other.pwin
+                {   with instance_create(x,y,hotjunk)
+                        with instance_create(x,0,warning)
+                        {   timer = 2;
+                            image_xscale = 2;
+                            image_yscale = 2;
+                            image_blend = c_red;
                         }
+                    instance_destroy();
+                    break;
                 }
-            }
+                else if random(1) &lt; 0.1*3/2*other.points/other.pwin
+                {   with instance_create(x,y,turret)
+                    {   timer = 4;
+                        damage = 0;
+                        with instance_create(x,0,warning)
+                        {   timer = 2;
+                            image_xscale = 2;
+                            image_yscale = 2;
+                            image_blend = c_aqua;
+                        }
+                    }
+                    instance_destroy();
+                    break;
+                }
+            }until irandom(100) &lt; 50
+            ////
             with jumper
-            {   if walled != 0
+                if walled != 0
                     y += wspeed;
-            }
+            ////
             with spawner
             {   y += wspeed;
                 if y &gt; room_height
                     instance_destroy();
                 else if (y&gt;0) and (y&lt;room_height*0.7) and (random(1)&lt;=0.002)
-                    with instance_create(irandom_range(room_width*0.2,room_width*0.8),y,labcoat)
-                    {   hspeed = choose(2,-2);
-                        timer = -1;
-                    }
+                with instance_create(x,y,labcoat)
+                {   hspeed = choose(2,-2);
+                    timer = -1;
+                }
             }
+            ////
             with labcoat
             {   y += wspeed;
                 image_blend = -1;
@@ -235,7 +310,7 @@ switch game_state
                     and (y&lt;room_height*0.7) and (random(1)&lt;=0.002)
                         timer = 3;
                 }
-                else
+                else if timer != -2
                 {   timer -= 1/room_speed;
                     image_blend = c_orange;
                     if !timer
@@ -248,10 +323,11 @@ switch game_state
                             gravity = 0.05;
                             shot = 0;
                         }
-                        timer = -1;
+                        timer = -2;
                     }
                 }
             }
+            ////
             with waste
             {   if !machine.game_boss
                 {   hit = XY_COLLISION(top_wall,2);
@@ -293,6 +369,7 @@ switch game_state
                         with hit[i] instance_destroy();
                 }
             }
+            ////
             with gunk
             {   y += wspeed;
                 image_xscale = 3;
@@ -309,7 +386,11 @@ switch game_state
                     instance_activate_all();
                     boss.damage++;
                 }
+                hit = XY_COLLISION(dbeam,2);
+                if hit[0]
+                    instance_destroy();
             }
+            ////
             with hotjunk
             {   y += wspeed;
                 hit = XY_COLLISION(bot_wall,2);
@@ -319,6 +400,7 @@ switch game_state
                     instance_destroy();
                 }
             }
+            ////
             with turret
             {   y += wspeed;
                 timer -= 1/room_speed;
@@ -335,6 +417,7 @@ switch game_state
                     instance_destroy();
                 }
             }
+            ////
             with bullet
             {   hit = XY_COLLISION(top_wall,2);
                 if hit[0]
@@ -362,6 +445,7 @@ switch game_state
                     instance_destroy();
                 }
             }
+            ////
             with warning
             {   if !timer
                     instance_destroy();
@@ -370,43 +454,60 @@ switch game_state
                     image_alpha = timer/2;
                 }
             }
-            if game_boss == 1
-            {   with boss
-                {   y += wspeed*10;
-                    if y &gt; room_height
-                    {   other.game_boss++;
-                        other.rate = 1;
-                        
-                        //x = room_width/2;
-                        /*y = placement;
-                        with lgrip
-                        {   //x = room_width/2;
-                            y = other.placement;
-                        }
-                        with rgrip
-                        {   //x = room_width/2;
-                            y = other.placement;
-                        }*/
-                        hspeed = irandom_range(15,30) * choose(1,-1);
-                        vspeed = irandom_range(10,15) * choose(1,-1);
-                        
+            ////
+            if game_boss == 1 with boss
+            {   y += wspeed*10;
+                if y &gt; room_height*1.5
+                {   other.game_boss++;
+                    
+                    
+                    //x = room_width/2;
+                    /*y = placement;
+                    with lgrip
+                    {   //x = room_width/2;
+                        y = other.placement;
                     }
+                    with rgrip
+                    {   //x = room_width/2;
+                        y = other.placement;
+                    }*/
+                    image_index++;
+                    hspeed = irandom_range(15,30) * choose(1,-1);
+                    vspeed = irandom_range(10,15) * choose(1,-1);
+                    
                 }
-                with lgrip
-                    y += wspeed*10;
-                with rgrip
-                    y += wspeed*10;
+                lgrip.y += wspeed*10;
+                rgrip.y += wspeed*10;
             }
             break;
+    //Restart death
     case 4: if one_h
-            {   if game_select &lt; 59
+            {   if game_select &lt; 40
                     game_select += 1;
             }
             else
                 game_select = 0;
             if one_r
                 room_restart();
-            if game_select == 59
+            if game_select &gt;= 40
+                game_end();
+            one_p = 0;
+            one_h = 0;
+            one_r = 0;
+            break;
+    //Win state
+    case 5: me.x = room_width/2;
+            me.hspeed = 0;
+            me.vspeed = -10;
+            if one_h
+            {   if game_select &lt; 40
+                    game_select += 1;
+            }
+            else
+                game_select = 0;
+            if one_r
+                room_restart();
+            if game_select &gt;= 40
                 game_end();
             one_p = 0;
             one_h = 0;
@@ -440,55 +541,149 @@ switch game_state
             <string>///HUD
 
 if instance_exists(me)
-{   var green = me.mutagen[0]/100;
-    draw_set_alpha(green);
-    draw_rectangle_color(0,0,
-                         room_width*0.05*green,room_height,
-                         c_lime,c_lime,c_lime,c_lime,false);
-    draw_rectangle_color(room_width*(1-0.05*green),0,
-                         room_width,room_height,
-                         c_lime,c_lime,c_lime,c_lime,false);
-    draw_set_alpha(green/6);
-    draw_rectangle_color(room_width*0.05*green,0,
-                         room_width*(1-0.05*green),room_height,
-                         c_lime,c_lime,c_lime,c_lime,false);
-    draw_set_alpha(1);
+{   if game_state &gt;= 2
+    {   var green = me.mutagen[0]/100;
+        draw_set_alpha(green);
+        draw_rectangle_color(0,0,
+                             room_width*0.05*green,room_height,
+                             c_lime,c_lime,c_lime,c_lime,false);
+        draw_rectangle_color(room_width*(1-0.05*green),0,
+                             room_width,room_height,
+                             c_lime,c_lime,c_lime,c_lime,false);
+        draw_set_alpha(green/6);
+        draw_rectangle_color(room_width*0.05*green,0,
+                             room_width*(1-0.05*green),room_height,
+                             c_lime,c_lime,c_lime,c_lime,false);
+        draw_set_alpha(1);
+        ////
+        draw_circle_color(room_width/2,room_height*0.93,room_height*0.025,
+                          merge_color(c_red,c_lime,health/100),
+                          merge_color(c_red,c_lime,health/100),false);
+        draw_set_halign(fa_center);
+        ////
+        draw_text_transformed(room_width/2,room_height*0.97,
+                              string_format(date_second_span(game_start,date_current_datetime()),3,0),
+                              2,2,0);
+        draw_set_halign(fa_left);
+        ////
+        draw_rectangle_color(room_width*0.05,room_height*0.925,
+                             room_width*0.4,room_height*0.975,
+                             c_olive,c_olive,c_olive,c_olive,true);
+        draw_rectangle_color(room_width*0.6,room_height*0.925,
+                             room_width*0.95,room_height*0.975,
+                             c_olive,c_olive,c_olive,c_olive,true);
+        draw_rectangle_color(room_width*0.4 - room_width*0.35*points/pwin,room_height*0.925,
+                             room_width*0.4,room_height*0.975,
+                             c_yellow,c_yellow,c_yellow,c_yellow,false);
+        draw_rectangle_color(room_width*0.6,room_height*0.925,
+                             room_width*0.6 + room_width*0.35*points/pwin,room_height*0.975,
+                             c_yellow,c_yellow,c_yellow,c_yellow,false);
+        if game_state == 5
+        {   draw_set_halign(fa_center);
+            draw_text_transformed(room_width/2,room_height*0.3,
+                                  "A WINNER IS YOU#Your Time Is:#"
+                                  +string_format(date_second_span(game_start,game_finish),3,0),
+                                  4,4,0);
+            draw_set_halign(fa_left);
+            draw_text_transformed(room_width*0.15,room_height*0.82,"Press#to attempt a#better time",2,2,0);
+            draw_circle_color(room_width/2,room_height*0.85,room_width*0.05,c_white,c_white,true);
+            draw_circle_color(room_width/2,room_height*0.85,room_width*0.05*game_select/40,c_white,c_white,false);
+            draw_text_transformed(room_width*0.7,room_height*0.82,"Hold#to end the game#as a winner",2,2,0);
+        }
+    }
+    else if !game_state
+    {   switch game_story
+        {   case 0: draw_text_transformed(room_width/2,room_height*0.3,
+                                          0,
+                                          2,2,0);
+                    break;
+            case 1: draw_text_transformed(room_width*0.08,room_height*0.1,
+                                          "Yes, my name is of no importance
+                                          #right now, I am just a
+                                          #GRAND THIEF (and acrobat),
+                                          #here to steal this entire building,
+                                          #with this machine that I t...
+                                          #mad... that I just have of course,
+                                          #for these sort of jobs, were I
+                                          #heist big things, like this ma...",
+                                          2.5,2.5,-1);
+                    break;
+            case 2: draw_text_transformed(room_width*0.08,room_height*0.1,
+                                          "Anyway, I'll use this machine to
+                                          #eat things up and take everyting
+                                          #with me, though speeding it up will
+                                          #cause me to fly all over the place,
+                                          #though I can handle my self with my
+                                          #swift attack midair, to keep myself
+                                          #and the machine safe from what
+                                          #those pesky scientists throw at us.",
+                                          2.5,2.5,-1);
+                    break;
+            case 3: draw_text_transformed(room_width*0.08,room_height*0.1,
+                                          "But, my attacks won't work on:
+                                          #Bullets, big machines and such,
+                                          #may work on turrets if I try
+                                          #hard enough.
+                                          #So yeah, try focusing on hitting
+                                          #those toxic barrels to keep the
+                                          #machine safe, I hear weird things
+                                          #happen if you touch them to much ;)",
+                                          2.5,2.5,-1);
+                    break;
+            case 4: draw_text_transformed(room_width*0.08,room_height*0.1,
+                                          "Speaking of which, here's a safety
+                                          #pamphlet that I found.
+                                          #RED: a vulnerable entity that
+                                          #burns away things before it.
+                                          #GREEN: a slow, unstable entity that
+                                          #needs energy to sustain itself.
+                                          #BLUE: an entity that holds and
+                                          #release to bounce midair.",
+                                          2.5,2.5,-1);
+                    break;
+            case 5: draw_text_transformed(room_width*0.08,room_height*0.1,
+                                          "CYAN: a resistant entity that
+                                          #moves at blinding speed.
+                                          #MAGENTA: a dangerous entity that
+                                          #only wishes to replicate itself
+                                          #YELLOW: a floating entity that
+                                          #purges itself from all harm.
+                                          #
+                                          #",
+                                          2.5,2.5,-1);
+                    break;
+            case 6: draw_text_transformed(room_width*0.08,room_height*0.1,
+                                          "So let's get started.
+                                          #
+                                          #
+                                          #
+                                          #
+                                          #
+                                          #
+                                          #",
+                                          2.5,2.5,-1);
+                    break;
+        }
+        draw_text_transformed(room_width*0.15,room_height*0.82,"Press#to continue",2,2,0);
+        draw_circle_color(room_width/2,room_height*0.85,room_width*0.05,c_white,c_white,true);
+        draw_circle_color(room_width/2,room_height*0.85,room_width*0.05*game_select/40,c_white,c_white,false);
+        draw_text_transformed(room_width*0.7,room_height*0.82,"Hold#to start",2,2,0);
+    }
     
-    draw_circle_color(room_width/2,room_height*0.93,room_height*0.025,
-                      merge_color(c_red,c_lime,health/100),
-                      merge_color(c_red,c_lime,health/100),false);
-    draw_set_halign(fa_center);
-    draw_text_transformed(room_width/2,room_height*0.97,
-                          string_format(date_second_span(game_start,date_current_datetime()),3,0),
-                          2,2,0);
-    draw_set_halign(fa_left);
-    draw_rectangle_color(room_width*0.05,room_height*0.925,
-                         room_width*0.4,room_height*0.975,
-                         c_olive,c_olive,c_olive,c_olive,true);
-    draw_rectangle_color(room_width*0.6,room_height*0.925,
-                         room_width*0.95,room_height*0.975,
-                         c_olive,c_olive,c_olive,c_olive,true);
-    draw_rectangle_color(room_width*0.4 - room_width*0.35*points/pwin,room_height*0.925,
-                         room_width*0.4,room_height*0.975,
-                         c_yellow,c_yellow,c_yellow,c_yellow,false);
-    draw_rectangle_color(room_width*0.6,room_height*0.925,
-                         room_width*0.6 + room_width*0.35*points/pwin,room_height*0.975,
-                         c_yellow,c_yellow,c_yellow,c_yellow,false);
-    
-    draw_text_transformed(room_width/2,room_height/2,
+    draw_text_transformed(room_width*0.8,room_height*0.85,
                           string(view_wport[0])+','+string(view_hport[0])
-                          +'#'+string(fps_real)
-                          +'#toxic:'+string(me.mutagen[0])
-                          +'#resist:'+string(me.resist)
-                          +'#stun:'+string(me.stun)
-                          +'#r:'+string(me.mutagen[1])
-                          +'#g:'+string(me.mutagen[2])
-                          +'#b:'+string(me.mutagen[3])
-                          +'#c:'+string(me.mutagen[4])
-                          +'#m:'+string(me.mutagen[5])
-                          +'#y:'+string(me.mutagen[6])
-                          +'#score:'+string(points),
-                          2,2,0);
+                          +"#fps:"+string(fps_real)
+                          /*+"#toxic:"+string(me.mutagen[0])
+                          +"#resist:"+string(me.resist)
+                          +"#stun:"+string(me.stun)
+                          +"#r:"+string(me.mutagen[1])
+                          +"#g:"+string(me.mutagen[2])
+                          +"#b:"+string(me.mutagen[3])
+                          +"#c:"+string(me.mutagen[4])
+                          +"#m:"+string(me.mutagen[5])
+                          +"#y:"+string(me.mutagen[6])
+                          +"#score:"+string(points)*/,
+                          1,1,0);
 }
 else if room == title_screen
 {   draw_set_halign(fa_center);
@@ -496,6 +691,12 @@ else if room == title_screen
                           "ONE##THEFT##CLIMB##Science Edition",
                           3,3,0);
     draw_set_halign(fa_left);
+}
+else
+{   draw_text_transformed(room_width*0.15,room_height*0.82,"Press#to retry",2,2,0);
+    draw_circle_color(room_width/2,room_height*0.85,room_width*0.05,c_white,c_white,true);
+    draw_circle_color(room_width/2,room_height*0.85,room_width*0.05*game_select/40,c_white,c_white,false);
+    draw_text_transformed(room_width*0.7,room_height*0.82,"Hold#to quit",2,2,0);
 }
 
 </string>

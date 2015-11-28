@@ -49,9 +49,11 @@ game_bottom = 0;
 game_start = 0;
 game_finish = 0;
 game_boss = 0;
+game_cheat = 0;
+game_lose = "";
 wait = 0;
 rate = 1;
-pwin = 10//3000;
+pwin = 3000;
 points = 0;
 health = 100;
 
@@ -164,20 +166,40 @@ else
     one_h = keyboard_check(vk_space);
     one_r = keyboard_check_released(vk_space);
 }
+//Skip to boss debug
+if string_count("boss",keyboard_string)
+{   game_cheat = 1;
+    points = pwin;
+    with instance_create(x,room_height,spawner)
+        sprite_set_offset(sprite_index,0,1);
+}
+if string_length(keyboard_string) &gt; 4
+    keyboard_string = string_copy(keyboard_string,2,5);
 
 switch game_state
 {   //Intro start
-    case 0: if room == main_screen
-            {   if one_h
+    case 0: if room == main_screen//Main
+            {   background_xscale[0] = 2;
+                background_yscale[0] = 2;
+                if !game_select
+                {   for (var i=0;i&lt;=2;i++) repeat 3
+                    with instance_create(irandom_range(room_width*0.2,room_width*0.8),room_height*0.2*(1+i),labcoat)
+                    {   hspeed = choose(0.5,-0.5);
+                        image_speed = 0;
+                        timer = -1;
+                    }
+                    game_select++;
+                }
+                if one_h
                 {   if game_select &lt; 40
                         game_select += 1;
                 }
                 else
-                    game_select = 0;
+                    game_select = 1;
                 if one_r and (game_story&lt;6)
                     game_story++;
                 if game_select &gt;= 40
-                {   game_select = 0;
+                {   game_select = 1;
                     game_state++;
                     game_bottom = instance_create(0,room_height,bot_wall);
                     with game_bottom
@@ -189,8 +211,68 @@ switch game_state
                 one_h = 0;
                 one_r = 0;
             }
-            else if one_r
-                room_goto_next();
+            else//Title
+            {   if game_select &gt;= 120
+                {   background_x[1] -= 32;
+                    background_xscale[1] += 1;
+                    background_blend[1] = merge_color(-1,c_black,game_select/210);
+                    game_select += 1;
+                    if game_select &gt;= 210
+                    {   game_select = 210
+                        if one_r or !one_h
+                        {   //background_delete(background_index[0]);
+                            background_delete(background_index[1]);
+                            room_goto_next();
+                        }
+                    }
+                }
+                else if !background_x[1]
+                {   //background_index[0] = background_create_gradient(room_width,room_height,c_navy,c_aqua,1);
+                    background_index[1] = background_create_color(64,64,c_dkgray);
+                    background_x[1] = room_width*0.25;
+                    background_y[1] = room_height-64;
+                    background_xscale[1] = room_width/128;
+                }
+                else if one_h and (game_start&gt;room_height*0.25)
+                {   if game_select &lt; 120
+                        game_select += 1;
+                }
+                else
+                    game_select = 0;
+                
+                var wspeed = (1+game_select/8) * (2 + one_h*4);
+                background_vspeed[1] = -wspeed;
+                game_start += wspeed;
+                background_yscale[1] = 1 + game_start/64;
+                wait = max(wait-wspeed,0);
+                if !wait and (random(1)&lt;=wspeed/200)
+                {   if random(1) &lt; 0.3
+                        instance_create(irandom_range(room_width*0.3,room_width*0.7),room_height*1.1,waste);
+                    else if random(1) &lt; 0.1
+                        instance_create(irandom_range(room_width*0.3,room_width*0.7),room_height*1.1,hotjunk);
+                    else
+                        instance_create(irandom_range(room_width*0.3,room_width*0.7),room_height*1.1,labcoat);
+                    wait = 192;
+                }
+                with labcoat
+                {   y -= wspeed;
+                    image_blend = merge_color(-1,c_black,other.game_select/210);
+                    image_speed = 0;
+                    image_xscale = 0.5;
+                    image_yscale = 0.5;
+                }
+                with waste
+                {   y -= wspeed;
+                    image_blend = merge_color(-1,c_black,other.game_select/210);
+                }
+                with hotjunk
+                {   y -= wspeed;
+                    image_blend = merge_color(-1,c_black,other.game_select/210);
+                    image_speed = 0.1;
+                    image_xscale = 0.5;
+                    image_yscale = 0.5;
+                }
+            }
             break;
     //Machine rise
     case 1: one_p = 0;
@@ -216,68 +298,53 @@ switch game_state
             }
             break;
     //Main game
-    case 3: var i,hit,wspeed = rate * (2 + one_h*4);
-            if game_boss == 1
-                wspeed = 2;
+    case 3: var i=0,hit,wspeed = rate * (2 + one_h*4);
             wait = max(wait-wspeed,0);
             points = max(points+wspeed*2/room_speed,0);
-            if points &gt;= pwin//BOSS
-            {   points = pwin;
-                if !game_boss
-                {   game_boss++;
-                    rate = 1;
-                    instance_create(room_width/2,room_height*-1,boss);
-                    with instance_create(0,room_height*-1,lgrip)
-                        wobb = 0;
-                    with instance_create(room_width,room_height*-1,rgrip)
-                        wobb = 0;
-                    with instance_create(room_width/2,0,warning)
-                    {   timer = 3;
-                        image_xscale = 4;
-                        image_yscale = 4;
-                        image_blend = c_yellow;
-                    }
-                }
-            }
+            background_vspeed[0] = wspeed;
             if health &lt;= 0//DEATH
                 me.gravity = 2;
             else
                 health = min(health+2/room_speed,100);
             
             //Object controls
-            if !wait and !game_boss and (random(1)&lt;=0.01)
+            if !wait and !game_boss and (random(1)&lt;=wspeed/200/*0.01*/)
             do with instance_create(irandom_range(room_width*0.2,room_width*0.8),room_height*-0.2,spawner)
             {   image_xscale = room_width*0.05;
                 image_yscale = 192;
                 image_blend = c_black;
-                other.wait = image_yscale*2;
                 sprite_set_offset(sprite_index,0,1);
-                if random(1) &lt; 0.1*3*other.points/other.pwin
-                {   with instance_create(x,y,hotjunk)
-                        with instance_create(x,0,warning)
-                        {   timer = 2;
-                            image_xscale = 2;
-                            image_yscale = 2;
-                            image_blend = c_red;
-                        }
-                    instance_destroy();
-                    break;
-                }
-                else if random(1) &lt; 0.1*3/2*other.points/other.pwin
-                {   with instance_create(x,y,turret)
-                    {   timer = 4;
-                        damage = 0;
-                        with instance_create(x,0,warning)
-                        {   timer = 2;
-                            image_xscale = 2;
-                            image_yscale = 2;
-                            image_blend = c_aqua;
-                        }
+                if !other.wait
+                {   if random(1) &lt; 0.1*3*other.points/other.pwin
+                    {   with instance_create(x,y,hotjunk)
+                            with instance_create(x,0,warning)
+                            {   timer = 2;
+                                image_xscale = 2;
+                                image_yscale = 2;
+                                image_blend = c_red;
+                            }
+                        image_yscale /= 2;
+                        instance_destroy();
+                        i = 1;
                     }
-                    instance_destroy();
-                    break;
+                    else if random(1) &lt; 0.1*3/2*other.points/other.pwin
+                    {   with instance_create(x,y,turret)
+                        {   timer = 3*room_speed-1;
+                            damage = 0;
+                            with instance_create(x,0,warning)
+                            {   timer = 2;
+                                image_xscale = 2;
+                                image_yscale = 2;
+                                image_blend = c_aqua;
+                            }
+                        }
+                        image_yscale /= 4;
+                        instance_destroy();
+                        i = 1;
+                    }
                 }
-            }until irandom(100) &lt; 50
+                other.wait = image_yscale*2;
+            }until i or (irandom(100)&lt;50)
             ////
             with jumper
                 if walled != 0
@@ -297,9 +364,13 @@ switch game_state
             with labcoat
             {   y += wspeed;
                 image_blend = -1;
-                hit = XY_COLLISION(bot_wall,2);
+                image_speed = 0.05;
+                image_xscale = -sign(hspeed);
+                if image_index == 2
+                    image_index = 0;
+                hit = XY_COLLISION(other.game_bottom,2);
                 if hit[0]
-                {   other.points += 20;
+                {   other.points += 10;
                     other.rate += 0.02;
                     instance_destroy();
                 }
@@ -343,9 +414,9 @@ switch game_state
                         instance_destroy();
                     }
                 }
-                hit = XY_COLLISION(bot_wall,2);
+                hit = XY_COLLISION(other.game_bottom,2);
                 if hit[0]
-                {   if !machine.game_boss
+                {   if !(machine.game_boss or shot)
                     {   health -= 20;
                         other.points -= 100;
                         other.rate = max(other.rate-0.5,1);
@@ -354,7 +425,8 @@ switch game_state
                 }
                 
                 if shot
-                {   hit = XY_COLLISION(waste,0);
+                {   image_blend = c_orange;
+                    hit = XY_COLLISION(waste,0);
                     if hit[0] for (i=1;i&lt;array_length_1d(hit);i++)
                         with hit[i] instance_destroy();
                     hit = XY_COLLISION(jumper,0);
@@ -362,20 +434,21 @@ switch game_state
                         with hit[i] if hit[i] != machine.me
                             instance_destroy();
                     hit = XY_COLLISION(hotjunk,0);
-                    if hit[0] for (i=1;i&lt;array_length_1d(hit);i++)
-                        with hit[i] instance_destroy();
+                    if hit[0] with hit[1]
+                        instance_destroy();
                     hit = XY_COLLISION(turret,0);
-                    if hit[0] for (i=1;i&lt;array_length_1d(hit);i++)
-                        with hit[i] instance_destroy();
+                    if hit[0] with hit[1]
+                        instance_destroy();
                 }
             }
             ////
             with gunk
             {   y += wspeed;
                 image_xscale = 3;
-                hit = XY_COLLISION(bot_wall,2);
+                image_speed = 0.1;
+                hit = XY_COLLISION(other.game_bottom,2);
                 if hit[0]
-                {   other.points += 10;
+                {   other.points += 5;
                     instance_destroy();
                 }
                 hit = XY_COLLISION(rgrip,2);
@@ -393,9 +466,10 @@ switch game_state
             ////
             with hotjunk
             {   y += wspeed;
-                hit = XY_COLLISION(bot_wall,2);
+                image_speed = 0.1;
+                hit = XY_COLLISION(other.game_bottom,2);
                 if hit[0]
-                {   other.points += 100;
+                {   other.points += 50;
                     other.rate += 0.2;
                     instance_destroy();
                 }
@@ -403,33 +477,29 @@ switch game_state
             ////
             with turret
             {   y += wspeed;
-                timer -= 1/room_speed;
+                timer--;
                 if damage &gt;= 2
                     gravity = 0.2;
-                else if !timer
-                {   with instance_create(x,y,bullet)
-                        motion_add(point_direction(x,y,machine.me.x,machine.me.y),20);
-                    timer = 4;
-                }
-                hit = XY_COLLISION(bot_wall,2);
+                else if timer == 0
+                with instance_create(x,y,bullet)
+                    motion_add(point_direction(x,y,machine.me.x,machine.me.y),20);
+                else if timer &lt;= -room_speed
+                    timer = 3*room_speed-1;
+                hit = XY_COLLISION(other.game_bottom,2);
                 if hit[0]
-                {   other.points += 100;
+                {   other.points += 50;
                     instance_destroy();
                 }
             }
             ////
             with bullet
-            {   hit = XY_COLLISION(top_wall,2);
-                if hit[0]
+            {   if (y&lt;0) or (y&gt;room_height)
                     instance_destroy();
                 hit = XY_COLLISION(side_wall,1);
                 if hit[0]
                 {   instance_create(hit[1].x,y,gunk);
                     instance_destroy();
                 }
-                hit = XY_COLLISION(bot_wall,2);
-                if hit[0]
-                    instance_destroy();
                 
                 hit = XY_COLLISION(waste,0);
                 if hit[0] for (i=1;i&lt;array_length_1d(hit);i++)
@@ -440,8 +510,7 @@ switch game_state
                         instance_destroy();
                 hit = XY_COLLISION(hotjunk,0);
                 if hit[0]
-                {   for (i=1;i&lt;array_length_1d(hit);i++)
-                        with hit[i] instance_destroy();
+                {   with hit[1] instance_destroy();
                     instance_destroy();
                 }
             }
@@ -456,39 +525,51 @@ switch game_state
             }
             ////
             if game_boss == 1 with boss
-            {   y += wspeed*10;
+            {   y += wspeed;
+                background_blend[0] = c_dkgray;
                 if y &gt; room_height*1.5
                 {   other.game_boss++;
-                    
-                    
-                    //x = room_width/2;
-                    /*y = placement;
-                    with lgrip
-                    {   //x = room_width/2;
-                        y = other.placement;
-                    }
-                    with rgrip
-                    {   //x = room_width/2;
-                        y = other.placement;
-                    }*/
+                    other.rate = 1;
                     image_index++;
                     hspeed = irandom_range(15,30) * choose(1,-1);
                     vspeed = irandom_range(10,15) * choose(1,-1);
-                    
                 }
-                lgrip.y += wspeed*10;
-                rgrip.y += wspeed*10;
+                lgrip.y += wspeed;
+                rgrip.y += wspeed;
+            }
+            else
+                background_blend[0] = merge_color(-1,c_navy,game_boss/6);
+            
+            if points &gt;= pwin//BOSS
+            {   points = pwin;
+                if !game_boss
+                {   game_boss++;
+                    instance_create(room_width/2,room_height/-2,boss);
+                    with instance_create(0,room_height/-2,lgrip)
+                        wobb = 0;
+                    with instance_create(room_width,room_height/-2,rgrip)
+                        wobb = 0;
+                    with instance_create(room_width/2,0,warning)
+                    {   timer = 3;
+                        image_xscale = 4;
+                        image_yscale = 4;
+                        image_blend = c_yellow;
+                    }
+                }
             }
             break;
     //Restart death
-    case 4: if one_h
+    case 4: background_vspeed[0] = 0;
+            if one_h
             {   if game_select &lt; 40
                     game_select += 1;
             }
             else
                 game_select = 0;
             if one_r
-                room_restart();
+            {   room_restart();
+                lives = 1-lives;
+            }
             if game_select &gt;= 40
                 game_end();
             one_p = 0;
@@ -513,8 +594,9 @@ switch game_state
             one_h = 0;
             one_r = 0;
             break;
+    //Dying at the end
+    default:room_restart();
 }
-
 
 </string>
           </argument>
@@ -541,7 +623,7 @@ switch game_state
             <string>///HUD
 
 if instance_exists(me)
-{   if game_state &gt;= 2
+{   if game_state &gt;= 2//Machine bottom
     {   var green = me.mutagen[0]/100;
         draw_set_alpha(green);
         draw_rectangle_color(0,0,
@@ -578,7 +660,7 @@ if instance_exists(me)
         draw_rectangle_color(room_width*0.6,room_height*0.925,
                              room_width*0.6 + room_width*0.35*points/pwin,room_height*0.975,
                              c_yellow,c_yellow,c_yellow,c_yellow,false);
-        if game_state == 5
+        if game_state == 5//Victory restart
         {   draw_set_halign(fa_center);
             draw_text_transformed(room_width/2,room_height*0.3,
                                   "A WINNER IS YOU#Your Time Is:#"
@@ -589,88 +671,115 @@ if instance_exists(me)
             draw_circle_color(room_width/2,room_height*0.85,room_width*0.05,c_white,c_white,true);
             draw_circle_color(room_width/2,room_height*0.85,room_width*0.05*game_select/40,c_white,c_white,false);
             draw_text_transformed(room_width*0.7,room_height*0.82,"Hold#to end the game#as a winner",2,2,0);
+            lives = 0;
         }
     }
     else if !game_state
-    {   switch game_story
-        {   case 0: draw_text_transformed(room_width/2,room_height*0.3,
-                                          0,
-                                          2,2,0);
+    {   switch game_story//Intro
+        {   case 0: draw_rectangle_color(0,0,room_width,room_height,0,0,0,0,false);
+                    if lives
+                    {   game_lose = choose("I can do this!","Try harder!");
+                        lives *= -1;
+                    }
+                    draw_text_transformed_color(room_width*0.08,room_height*0.1,
+                                                game_lose,
+                                                2.3,2.3,-1,
+                                                c_white,c_white,c_white,c_white,1);
                     break;
-            case 1: draw_text_transformed(room_width*0.08,room_height*0.1,
-                                          "Yes, my name is of no importance
-                                          #right now, I am just a
-                                          #GRAND THIEF (and acrobat),
-                                          #here to steal this entire building,
-                                          #with this machine that I t...
-                                          #mad... that I just have of course,
-                                          #for these sort of jobs, were I
-                                          #heist big things, like this ma...",
-                                          2.5,2.5,-1);
+            case 1: for (var i=0;i&lt;=1;i++)
+                        draw_text_transformed_color(room_width*0.08+16*i,room_height*0.1-16*i,
+                                                    "Yes, my name is of no importance
+                                                    #right now, I am just a
+                                                    #GRAND THIEF (and acrobat),
+                                                    #here to steal this entire building,
+                                                    #with this machine that I
+                                                    #just so happen to have, of course,
+                                                    #for these sort of jobs, were I
+                                                    #heist big things, like this...",
+                                                    2.3,2.3,-1,
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),1);
                     break;
-            case 2: draw_text_transformed(room_width*0.08,room_height*0.1,
-                                          "Anyway, I'll use this machine to
-                                          #eat things up and take everyting
-                                          #with me, though speeding it up will
-                                          #cause me to fly all over the place,
-                                          #though I can handle my self with my
-                                          #swift attack midair, to keep myself
-                                          #and the machine safe from what
-                                          #those pesky scientists throw at us.",
-                                          2.5,2.5,-1);
+            case 2: for (i=0;i&lt;=1;i++)
+                        draw_text_transformed_color(room_width*0.08+16*i,room_height*0.1-16*i,
+                                                    "Enough rambling, I'll use this machine
+                                                    #to eat things up and take everyting
+                                                    #with me, though speeding it up will
+                                                    #cause me to fly all over the place,
+                                                    #though I can handle my self with my
+                                                    #swift attack midair, to keep myself
+                                                    #and the machine safe from what
+                                                    #those pesky scientists throw at us.",
+                                                    2.3,2.3,-1,
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),1);
                     break;
-            case 3: draw_text_transformed(room_width*0.08,room_height*0.1,
-                                          "But, my attacks won't work on:
-                                          #Bullets, big machines and such,
-                                          #may work on turrets if I try
-                                          #hard enough.
-                                          #So yeah, try focusing on hitting
-                                          #those toxic barrels to keep the
-                                          #machine safe, I hear weird things
-                                          #happen if you touch them to much ;)",
-                                          2.5,2.5,-1);
+            case 3: for (i=0;i&lt;=1;i++)
+                        draw_text_transformed_color(room_width*0.08+16*i,room_height*0.1-16*i,
+                                                    "But, my attacks won't work on:
+                                                    #Bullets, big machines and such,
+                                                    #may work on turrets if I try
+                                                    #hard enough.
+                                                    #So yeah, try focusing on hitting
+                                                    #those toxic barrels to keep the
+                                                    #machine safe, I hear weird things will
+                                                    #happen to me if I touch them to much ;)",
+                                                    2.3,2.3,-1,
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),1);
                     break;
-            case 4: draw_text_transformed(room_width*0.08,room_height*0.1,
-                                          "Speaking of which, here's a safety
-                                          #pamphlet that I found.
-                                          #RED: a vulnerable entity that
-                                          #burns away things before it.
-                                          #GREEN: a slow, unstable entity that
-                                          #needs energy to sustain itself.
-                                          #BLUE: an entity that holds and
-                                          #release to bounce midair.",
-                                          2.5,2.5,-1);
+            case 4: for (i=0;i&lt;=1;i++)
+                        draw_text_transformed_color(room_width*0.08+16*i,room_height*0.1-16*i,
+                                                    "Speaking of which, here's a safety
+                                                    #pamphlet that I found.
+                                                    #RED: a vulnerable entity that
+                                                    #burns away things before it.
+                                                    #GREEN: a slow, unstable entity that
+                                                    #needs energy to sustain itself.
+                                                    #BLUE: an entity that holds and
+                                                    #release to bounce midair.",
+                                                    2.3,2.3,-1,
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),1);
                     break;
-            case 5: draw_text_transformed(room_width*0.08,room_height*0.1,
-                                          "CYAN: a resistant entity that
-                                          #moves at blinding speed.
-                                          #MAGENTA: a dangerous entity that
-                                          #only wishes to replicate itself
-                                          #YELLOW: a floating entity that
-                                          #purges itself from all harm.
-                                          #
-                                          #",
-                                          2.5,2.5,-1);
+            case 5: for (i=0;i&lt;=1;i++)
+                        draw_text_transformed_color(room_width*0.08+16*i,room_height*0.1-16*i,
+                                                    "CYAN: a resistant entity that
+                                                    #moves at blinding speed.
+                                                    #MAGENTA: a dangerous entity that
+                                                    #only wishes to replicate itself
+                                                    #YELLOW: a floating entity that
+                                                    #purges itself from all harm.
+                                                    #And remember that if you are in
+                                                    #immediate threat, just mash it out!",
+                                                    2.3,2.3,-1,
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),1);
                     break;
-            case 6: draw_text_transformed(room_width*0.08,room_height*0.1,
-                                          "So let's get started.
-                                          #
-                                          #
-                                          #
-                                          #
-                                          #
-                                          #
-                                          #",
-                                          2.5,2.5,-1);
+            case 6: for (i=0;i&lt;=1;i++)
+                        draw_text_transformed_color(room_width*0.08+16*i,room_height*0.1-16*i,
+                                                    "
+                                                    #
+                                                    #
+                                                    #So let's get started.
+                                                    #
+                                                    #
+                                                    #
+                                                    #",
+                                                    2.3,2.3,-1,
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),
+                                                    merge_color(0,-1,i),merge_color(0,-1,i),1);
                     break;
-        }
-        draw_text_transformed(room_width*0.15,room_height*0.82,"Press#to continue",2,2,0);
+        }//Story restart
+        draw_text_transformed_color(room_width*0.15,room_height*0.82,"Press#to continue",2,2,0,
+                                    c_white,c_white,c_white,c_white,1);
         draw_circle_color(room_width/2,room_height*0.85,room_width*0.05,c_white,c_white,true);
         draw_circle_color(room_width/2,room_height*0.85,room_width*0.05*game_select/40,c_white,c_white,false);
-        draw_text_transformed(room_width*0.7,room_height*0.82,"Hold#to start",2,2,0);
+        draw_text_transformed_color(room_width*0.7,room_height*0.82,"Hold#to start",2,2,0,
+                                    c_white,c_white,c_white,c_white,1);
     }
     
-    draw_text_transformed(room_width*0.8,room_height*0.85,
+    draw_text_transformed(room_width*0.85,room_height*0.90,
                           string(view_wport[0])+','+string(view_hport[0])
                           +"#fps:"+string(fps_real)
                           /*+"#toxic:"+string(me.mutagen[0])
@@ -685,18 +794,25 @@ if instance_exists(me)
                           +"#score:"+string(points)*/,
                           1,1,0);
 }
-else if room == title_screen
+else if room == title_screen//Title
 {   draw_set_halign(fa_center);
-    draw_text_transformed(room_width/2,room_height*0.3,
-                          "ONE##THEFT##CLIMB##Science Edition",
-                          3,3,0);
+    if game_start &lt; room_height*0.1
+    {   draw_text_transformed(room_width/2,room_height*0.3,
+                              "Hold to Start",
+                              3,3,0);
+    }
+    draw_text_transformed_color(room_width/2,room_height*1.15 - game_start,
+                                "ONE##THEFT##CLIMB",
+                                3,3,0,c_white,c_white,c_white,c_white,1);
     draw_set_halign(fa_left);
 }
-else
-{   draw_text_transformed(room_width*0.15,room_height*0.82,"Press#to retry",2,2,0);
+else//Defeat restart
+{   draw_text_transformed_color(room_width*0.15,room_height*0.82,"Press#to retry",2,2,0,
+                                c_white,c_white,c_white,c_white,1);
     draw_circle_color(room_width/2,room_height*0.85,room_width*0.05,c_white,c_white,true);
     draw_circle_color(room_width/2,room_height*0.85,room_width*0.05*game_select/40,c_white,c_white,false);
-    draw_text_transformed(room_width*0.7,room_height*0.82,"Hold#to quit",2,2,0);
+    draw_text_transformed_color(room_width*0.7,room_height*0.82,"Hold#to quit",2,2,0,
+                                c_white,c_white,c_white,c_white,1);
 }
 
 </string>

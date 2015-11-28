@@ -34,9 +34,11 @@ a_angle = 90;
 a_shoot = 0;
 timer1 = 0;
 timer2 = 0;
+timer3 = 0;
 attack = 0;
-damage = 0;
 action = 0;
+damage = 0;
+maxhit = 6/(1+5*machine.game_cheat);
 
 </string>
           </argument>
@@ -149,14 +151,14 @@ switch machine.game_boss
                                 image_blend = c_green;
                             }
                         }
-                        if irandom(100) &lt; wobb/room_speed//Death beam
+                        if irandom(100) &lt; wobb/room_speed//Death beam prepare
                             timer1 = 1;
-                        else if irandom(100) &lt; 40//Straight shot
+                        else if irandom(100) &lt; 40//Straight shot prepare
                         {   timer1 = 1.5;
                             attack = 3;
                             action = 1;
                         }
-                        else if irandom(100) &lt; 8//Random shot
+                        else if irandom(100) &lt; 8//Random shot prepare
                         {   timer1 = 0.8;
                             attack = 4;
                             action = 2;
@@ -256,7 +258,7 @@ switch machine.game_boss
             var adir2 = point_direction(rgrip.x,rgrip.y,x,y);
             hspeed -= aspd1*dcos(adir1) + aspd2*dcos(adir2);
             vspeed += aspd1*dsin(adir1) + aspd2*dsin(adir2);
-            if damage &gt;= 1//STAGE FINISH
+            if damage &gt;= maxhit//STAGE FINISH
             {   damage = 0;
                 timer1 = 0;
                 timer2 = 0;
@@ -297,7 +299,7 @@ switch machine.game_boss
                     image_yscale = 2;
                 }
             }
-            if damage &gt;= 1//STAGE FINISH
+            if damage &gt;= maxhit//STAGE FINISH
             {   if gravity != 0
                 {   gravity = 0;
                     y = room_height*0.9;
@@ -316,8 +318,9 @@ switch machine.game_boss
             break;
     //Ram stage
     case 4: if !timer1 and !timer2//Wait up and down
-            {   if damage &gt;= 2//END BOSS
+            {   if damage &gt;= maxhit//END BOSS
                 {   wobb = 3;
+                    action = -1;
                     image_index = 2;
                     gravity = 0.05;
                     with lgrip instance_destroy();
@@ -339,12 +342,22 @@ switch machine.game_boss
                     else if y &lt;= room_height*(0.15+0.6*placement)
                         placement = 1;
                     wobb += 3;
+                    a_shoot = wobb;
+                    if !timer3//Spin shot
+                    and collision_line(x,y,x+dcos(a_shoot)*10000,y-dsin(a_shoot)*10000,jumper,false,false)
+                    {   with instance_create(x,y,bullet)
+                            motion_add(other.a_shoot,20);
+                        timer3 = 2;
+                    }
+                    else
+                        timer3 -= 1/room_speed;
                     if wobb &gt;= 360
                     {   wobb -= 360;
                         attack++;
                     }
-                    else if !((wobb+90)%180) and (irandom(100)&lt;10+2*attack)//Ram
+                    else if !((wobb+90)%180) and (irandom(100)&lt;10+2*attack)//Ram prepare
                     {   timer1 = 4;
+                        timer3 = 1;
                         attack = 0;
                     }
                 }
@@ -437,11 +450,11 @@ if machine.game_boss &gt;= 2
         draw_line_width_color(x+192,y+64,rgrip.x-128,rgrip.y+128,20,c_olive,c_maroon);
         draw_line_width_color(x+192,y-64,rgrip.x-128,rgrip.y-128,20,c_olive,c_maroon);
     }
-    if wobb
-    {   //var v = 20*(1 + min((a_angle-90)/90,1) - max((a_angle-90)/90,1));
-        //var a = point_direction(x,y,machine.me.x,machine.me.y);
-        //var d = point_distance(x,y,machine.me.x,machine.me.y);
+    if abs(image_speed)&gt;0 and (machine.game_boss!=3)
+    and !(machine.game_boss==4 and timer3) and (action!=-1)
+    {   draw_set_alpha(0.75);
         draw_line_width_color(x,y,x+dcos(a_shoot)*10000,y-dsin(a_shoot)*10000,5+35*!!timer1,c_maroon,c_maroon);
+        draw_set_alpha(1);
     }
 }
 

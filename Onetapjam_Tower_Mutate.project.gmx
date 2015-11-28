@@ -22,7 +22,10 @@
     <sprite>sprites\lgrip_spr</sprite>
     <sprite>sprites\rgrip_spr</sprite>
   </sprites>
-  <backgrounds name="background"/>
+  <backgrounds name="background">
+    <background>background\metal_bck</background>
+    <background>background\sky_bck</background>
+  </backgrounds>
   <paths name="paths"/>
   <scripts name="scripts">
     <script>scripts\XY_COLLISION.gml</script>

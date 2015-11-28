@@ -27,8 +27,6 @@ if !((argument1>>1)&1)
     
     if !ds_queue_empty(no_wall)
     {   x += sign(spd) * ld;
-        //hspeed = 0;
-        //a_speed *= 0.7;
         hits[0] = 1;
         while !ds_queue_empty(no_wall)
         {   hits[array_length_1d(hits)] = ds_queue_dequeue(no_wall);
@@ -54,9 +52,6 @@ if !(argument1&1)
     
     if !ds_queue_empty(no_wall)
     {   y += sign(spd) * ld;
-        //vspeed = 0;
-        //grounded = 1;
-        //jumps = ex_jumps;
         hits[0] = 1;
         while !ds_queue_empty(no_wall)
         {   hit = ds_queue_dequeue(no_wall);
@@ -71,8 +66,6 @@ if !(argument1&1)
                 hits[array_length_1d(hits)] = hit
         }
     }
-    //else
-      //  grounded = 0;
 }
 
 ds_queue_destroy(no_wall);

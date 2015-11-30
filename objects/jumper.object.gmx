@@ -75,10 +75,12 @@ if ghost == -2//Self
 {   //Looks
     if machine.game_state == 3
         trail++;
-    if machine.game_state &gt;= 2
-        image_index = 0;
-    else
-        image_index = 1;
+    if machine.game_state != 5
+    {   if machine.game_state &gt;= 2
+            image_index = 0;
+        else
+            image_index = 1;
+    }
     if mutagen[5]
         image_blend = c_fuchsia;
     else if mutagen[6]
@@ -107,7 +109,7 @@ if ghost == -2//Self
     {   //Aerial action
         if one_p and !mutagen[5]
         {   if attack and (walled==0)
-            {   with instance_create(x+hspeed*2,y+vspeed*2,collider)
+            {   with instance_create(x+hspeed*3,y+vspeed*3,collider)
                 {   x -= 128 * (1+0.5*!!other.mutagen[3]) * (1+3*!!other.mutagen[6]);
                     y -= 128 * (1+3*!!other.mutagen[3]) * (1+3*!!other.mutagen[6]);
                     hspeed = other.hspeed;
@@ -146,6 +148,7 @@ if ghost == -2//Self
                                 case 3: hitt |= 2;
                                         with hit[1]
                                         {   damage++;
+                                            flash = room_speed;
                                             if machine.game_boss == 4
                                                 timer2 = 1.4;
                                         }
@@ -292,7 +295,7 @@ if ghost == -2//Self
             tumble = -2;
         else if mutagen[5]
             vspeed *= -1;
-        else
+        else if tumble != -2
         {   tumble = -1;
             x += walled*64;
             y -= 64;
@@ -367,7 +370,12 @@ if ghost == -2//Self
                     if m == 6
                     {   for(j=1;j&lt;6;j++)
                             mutagen[j] = 0;
-                        hspeed = sign(hspeed)*15;
+                        if walled == 0
+                            hspeed = sign(hspeed)*15;
+                        else
+                        {   hspeed = walled*15;
+                            walled = 0;
+                        }
                         factor -= 0.06;
                     }
                     else
@@ -553,7 +561,8 @@ else//Ghost
             <string>///GUIDE ARROW
 
 draw_self();
-if (machine.game_state&gt;=3)and (ghost==-2) and !mutagen[5]
+if (machine.game_state&gt;=3) and (machine.game_state!=5)
+and (ghost==-2) and !mutagen[5]
 {   draw_arrow(x,y,x+dcos(a_jump)*walled*250,y-dsin(a_jump)*250,50);
     //draw_line(x,y,x+dcos(55)*walled*50,y-dsin(55)*50);
     //draw_line(x,y,x+dcos(-55)*walled*50,y-dsin(-55)*50);

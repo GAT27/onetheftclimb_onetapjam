@@ -6,6 +6,7 @@
   <NewExtensions/>
   <sounds name="sound"/>
   <sprites name="sprites">
+    <sprite>sprites\machine_spr</sprite>
     <sprite>sprites\jumper_spr</sprite>
     <sprite>sprites\side_wall_spr</sprite>
     <sprite>sprites\spawner_spr</sprite>
@@ -41,6 +42,7 @@
     <object>objects\top_wall</object>
     <object>objects\bot_wall</object>
     <object>objects\spawner</object>
+    <object>objects\rail</object>
     <object>objects\labcoat</object>
     <object>objects\waste</object>
     <object>objects\gunk</object>

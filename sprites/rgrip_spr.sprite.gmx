@@ -8,9 +8,9 @@
   <sepmasks>0</sepmasks>
   <bboxmode>0</bboxmode>
   <bbox_left>36</bbox_left>
-  <bbox_right>255</bbox_right>
-  <bbox_top>11</bbox_top>
-  <bbox_bottom>502</bbox_bottom>
+  <bbox_right>235</bbox_right>
+  <bbox_top>12</bbox_top>
+  <bbox_bottom>501</bbox_bottom>
   <HTile>0</HTile>
   <VTile>0</VTile>
   <TextureGroups>

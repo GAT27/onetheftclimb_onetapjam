@@ -38,7 +38,10 @@ timer3 = 0;
 attack = 0;
 action = 0;
 damage = 0;
+flash = 0;
 maxhit = 6/(1+5*machine.game_cheat);
+if maxhit &lt; 1
+    maxhit = 0;
 
 </string>
           </argument>
@@ -262,6 +265,7 @@ switch machine.game_boss
             {   damage = 0;
                 timer1 = 0;
                 timer2 = 0;
+                flash = 0;
                 hspeed = choose(-5,5);
                 vspeed = 0;
                 gravity = 0.2;
@@ -322,7 +326,7 @@ switch machine.game_boss
                 {   wobb = 3;
                     action = -1;
                     image_index = 2;
-                    gravity = 0.05;
+                    gravity = 0.2;
                     with lgrip instance_destroy();
                     hit = XY_COLLISION(bot_wall,2);
                     if hit[0]
@@ -333,7 +337,7 @@ switch machine.game_boss
                 }
                 else
                 {   x = room_width*(0.5 + 0.38*(1 + min((wobb-90)/90,1) - max((wobb-90)/90,1)));
-                    y += 7 * sign(room_height*(0.15+0.6*placement) - y);
+                    y += 12 * sign(room_height*(0.15+0.6*placement) - y);
                     lgrip.y = y;
                     if placement
                     {   if y &gt;= room_height*(0.15+0.6*placement)
@@ -406,7 +410,7 @@ switch machine.game_boss
                             hspeed = 1;
                     }
                     else
-                    {   vspeed = 11 * sign(machine.me.y-y);
+                    {   vspeed = 4 * sign(machine.me.y-y);
                         lgrip.y = y;
                     }
                 }
@@ -441,15 +445,25 @@ switch machine.game_boss
 draw_self();
 if machine.game_boss &gt;= 2
 {   if instance_exists(lgrip)
-    {   draw_line_width_color(x-192,y,lgrip.x+128,lgrip.y,10,c_olive,c_olive);
-        draw_line_width_color(x-192,y+64,lgrip.x+128,lgrip.y+128,20,c_olive,c_olive);
-        draw_line_width_color(x-192,y-64,lgrip.x+128,lgrip.y-128,20,c_olive,c_olive);
+    {   draw_line_width_color(x-192,y,lgrip.x+192,lgrip.y,10,c_olive,c_olive);
+        draw_line_width_color(x-192,y+64,lgrip.x+192,lgrip.y+96,20,c_olive,c_olive);
+        draw_line_width_color(x-192,y-64,lgrip.x+192,lgrip.y-96,20,c_olive,c_olive);
     }
     if instance_exists(rgrip)
-    {   draw_line_width_color(x+192,y,rgrip.x-128,rgrip.y,10,c_olive,c_maroon);
-        draw_line_width_color(x+192,y+64,rgrip.x-128,rgrip.y+128,20,c_olive,c_maroon);
-        draw_line_width_color(x+192,y-64,rgrip.x-128,rgrip.y-128,20,c_olive,c_maroon);
+    {   draw_line_width_color(x+192,y,rgrip.x-192,rgrip.y,10,c_olive,c_maroon);
+        draw_line_width_color(x+192,y+64,rgrip.x-192,rgrip.y+96,20,c_olive,c_maroon);
+        draw_line_width_color(x+192,y-64,rgrip.x-192,rgrip.y-96,20,c_olive,c_maroon);
+        rgrip.image_blend = -1;
     }
+    if flash
+    {   if machine.game_boss == 2
+            rgrip.image_blend = merge_color(-1,c_green,flash%2);
+        else
+            image_blend = merge_color(-1,c_red,flash%2);
+        flash--;
+    }
+    else
+        image_blend = -1;
     if abs(image_speed)&gt;0 and (machine.game_boss!=3)
     and !(machine.game_boss==4 and timer3) and (action!=-1)
     {   draw_set_alpha(0.75);
